@@ -1,0 +1,15 @@
+{
+  "id": "scene-creator",
+  "title": "Scene Creator",
+  "description": "AI-powered scene background generation for Foundry VTT. Describe a scene, pick an environment and theme, and generate a custom map background via Supabase AI. Creates a fully configured scene with proper dimensions for a battle map.",
+  "version": "1.0.0",
+  "authors": [{"name":"Steve"}],
+  "compatibility": {"minimum":"13","verified":"14","maximum":"14"},
+  "esmodules": ["scripts/scene-creator.js"],
+  "styles": ["styles/scene-creator.css"],
+  "manifest": "https://raw.githubusercontent.com/darrenmcguff-GRC/scene-creator/main/module.json",
+  "download": "https://github.com/darrenmcguff-GRC/scene-creator/archive/refs/heads/main.zip",
+  "url": "https://github.com/darrenmcguff-GRC/scene-creator",
+  "readme": "https://raw.githubusercontent.com/darrenmcguff-GRC/scene-creator/main/README.md",
+  "flags": {}
+}

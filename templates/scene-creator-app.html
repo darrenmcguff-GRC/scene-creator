@@ -1,0 +1,50 @@
+<form class="scene-creator-app" autocomplete="off">
+  <div class="sc-card sc-card-hero">
+    <label class="sc-label-hero">AI Scene Generator</label>
+    <p class="sc-hint">Describe a battle map scene and the AI will generate a full background image and create a configured Foundry scene with proper grid settings.</p>
+
+    <label class="sc-field-label">Scene Name</label>
+    <input type="text" id="scene-name" class="sc-input-hero" placeholder="e.g. Goblin Den, Dragon's Lair, Ancient Temple">
+
+    <label class="sc-field-label">Description</label>
+    <textarea id="scene-description" class="sc-textarea" rows="4"
+      placeholder="Describe the area — size, terrain, notable features, mood, what the players might encounter... The more detail, the better the AI result.
+Example: A crumbling underground temple with broken pillars, glowing fungal growths on the walls, and a central altar. Rubble piles provide cover. The air is damp and heavy."></textarea>
+
+    <div class="sc-opts-row">
+      <div class="sc-opt">
+        <label>Environment</label>
+        <select id="scene-environment" class="sc-select-sm">
+          {{#each environments}}
+          <option value="{{this.value}}">{{this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="sc-opt">
+        <label>Theme / Lighting</label>
+        <select id="scene-theme" class="sc-select-sm">
+          {{#each themes}}
+          <option value="{{this.value}}">{{this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+    </div>
+
+    <button type="button" class="sc-btn sc-btn-primary sc-btn-hero" id="scene-btn-generate" style="margin-top:12px;">
+      <i class="fas fa-wand-magic-sparkles"></i> ✨ Generate Scene
+    </button>
+
+    <div id="scene-status" class="sc-status" style="display:none;"></div>
+  </div>
+
+  <div class="sc-card sc-card-info">
+    <div class="sc-info-row">
+      <span class="sc-info-icon">ℹ️</span>
+      <span class="sc-info-text">Creates a 1408×768 battle map with a 50px square grid (28×15 squares). Defaults to 5 ft. squares. Scene is automatically activated and viewed.</span>
+    </div>
+    <div class="sc-info-row">
+      <span class="sc-info-icon">🔑</span>
+      <span class="sc-info-text">Uses Hermes Bridge (Ollama) for prompt generation and Supabase API (nano-banana-2) for image creation.</span>
+    </div>
+  </div>
+</form>

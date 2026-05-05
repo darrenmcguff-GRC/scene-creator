@@ -1,0 +1,281 @@
+/* SCENE CREATOR v1.0.0 — AI Scene Generator */
+#scene-creator-app .window-content {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 0;
+  overflow: hidden;
+}
+
+.scene-creator-app {
+  padding: 16px;
+  overflow-y: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ─── Cards ─── */
+.sc-card {
+  background: #232335;
+  border: 1.5px solid #313244;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.sc-card-hero {
+  background: #1a1a2e;
+  border-color: #45475a;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sc-card-info {
+  background: #11111b;
+  border-color: #313244;
+  font-size: 12px;
+  color: #585b70;
+}
+
+.sc-info-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.sc-info-row:last-child { margin-bottom: 0; }
+.sc-info-icon { flex: 0 0 20px; text-align: center; }
+.sc-info-text { line-height: 1.4; }
+
+/* ─── Labels ─── */
+.sc-label-hero {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #a6adc8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sc-hint {
+  font-size: 12px;
+  color: #585b70;
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.sc-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #585b70;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+  padding-left: 2px;
+}
+
+/* ─── Inputs ─── */
+.sc-input-hero {
+  background: #11111b;
+  border: 2px solid #45475a;
+  color: #cdd6f4;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  height: auto;
+  box-sizing: border-box;
+}
+
+.sc-input-hero:focus {
+  border-color: #8b5cf6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+  background: #181825;
+}
+
+.sc-textarea {
+  background: #11111b;
+  border: 1.5px solid #313244;
+  color: #cdd6f4;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.sc-textarea:focus {
+  border-color: #8b5cf6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+  background: #181825;
+}
+
+.sc-opts-row {
+  display: flex;
+  gap: 8px;
+}
+
+.sc-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 80px;
+}
+
+.sc-opt label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #585b70;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding-left: 2px;
+}
+
+.sc-select-sm {
+  background: #11111b;
+  border: 1.5px solid #313244;
+  color: #000;
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: border-color 0.15s;
+  height: auto;
+  box-sizing: border-box;
+}
+
+.sc-select-sm:focus {
+  border-color: #8b5cf6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
+.sc-select-sm option {
+  color: #000;
+  background: #fff;
+}
+
+/* ─── Buttons ─── */
+.sc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 20px;
+  background: #313244;
+  color: #cdd6f4;
+  border: 1.5px solid #45475a;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.sc-btn:hover {
+  background: #45475a;
+  border-color: #585b70;
+  color: #f5e0a7;
+}
+
+.sc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.sc-btn-primary {
+  background: #4a1a6b;
+  border-color: #8b5cf6;
+  color: #d8b4fe;
+}
+
+.sc-btn-primary:hover {
+  background: #8b5cf6;
+  border-color: #a78bfa;
+  color: #fff;
+}
+
+.sc-btn-hero {
+  padding: 12px 24px;
+  font-size: 15px;
+  border-radius: 10px;
+  width: 100%;
+}
+
+/* ─── Status ─── */
+.sc-status {
+  background: #11111b;
+  border: 1.5px solid #313244;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 4px;
+}
+
+.sc-status-step {
+  font-size: 13px;
+  color: #a6adc8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.sc-status-step i {
+  flex: 0 0 16px;
+  text-align: center;
+}
+
+.sc-success {
+  color: #a6e3a1;
+}
+
+.sc-error {
+  color: #f88;
+}
+
+/* ─── Directory Button ─── */
+.scene-creator-directory-btn {
+  flex: 0 0 34px;
+  line-height: 30px;
+  text-align: center;
+  background: #232335;
+  border: 1.5px solid #45475a;
+  border-radius: 6px;
+  margin: 2px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #8b5cf6;
+  transition: all 0.2s;
+}
+
+.scene-creator-directory-btn:hover {
+  background: #8b5cf6;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+}
+
+/* ─── Scrollbar ─── */
+.scene-creator-app::-webkit-scrollbar { width: 7px; }
+.scene-creator-app::-webkit-scrollbar-track { background: #11111b; }
+.scene-creator-app::-webkit-scrollbar-thumb { background: #313244; border-radius: 4px; }
+.scene-creator-app::-webkit-scrollbar-thumb:hover { background: #45475a; }
+
+/* ─── Handlebar overrides for Foundry ─── */
+.scene-creator select {
+  color: #000;
+  background: #fff;
+}
+.scene-creator option {
+  color: #000;
+  background: #fff;
+}
