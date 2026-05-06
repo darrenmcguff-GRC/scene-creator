@@ -1,7 +1,7 @@
 <form class="scene-creator-app" autocomplete="off">
   <div class="sc-card sc-card-hero">
     <label class="sc-label-hero">AI Scene Generator</label>
-    <p class="sc-hint">Describe a battle map scene and the AI will generate a full background image and create a configured Foundry scene with proper grid settings.</p>
+    <p class="sc-hint">Describe a battle map and the AI will generate a full background image and create a configured Foundry scene with proper grid settings.</p>
 
     <label class="sc-field-label">Scene Name</label>
     <input type="text" id="scene-name" class="sc-input-hero" placeholder="e.g. Goblin Den, Dragon's Lair, Ancient Temple">
@@ -30,6 +30,21 @@ Example: A crumbling underground temple with broken pillars, glowing fungal grow
       </div>
     </div>
 
+    <div class="sc-opts-row">
+      <div class="sc-opt">
+        <label>Map Size (squares)</label>
+        <select id="scene-grid-size" class="sc-select-sm">
+          {{#each mapSizes}}
+          <option value="{{this.value}}" {{#if (eq this.value ../defaultGrid)}}selected{{/if}}>{{this.label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="sc-opt" style="visibility:hidden;">
+        <label>&nbsp;</label>
+        <select class="sc-select-sm"><option>—</option></select>
+      </div>
+    </div>
+
     <button type="button" class="sc-btn sc-btn-primary sc-btn-hero" id="scene-btn-generate" style="margin-top:12px;">
       <i class="fas fa-wand-magic-sparkles"></i> ✨ Generate Scene
     </button>
@@ -40,7 +55,7 @@ Example: A crumbling underground temple with broken pillars, glowing fungal grow
   <div class="sc-card sc-card-info">
     <div class="sc-info-row">
       <span class="sc-info-icon">ℹ️</span>
-      <span class="sc-info-text">Creates a 1408×768 battle map with a 50px square grid (28×15 squares). Defaults to 5 ft. squares. Scene is automatically activated and viewed.</span>
+      <span class="sc-info-text">Creates a battle map with a 50px square grid. Defaults to 5 ft. squares. Scene is automatically activated and viewed. The background image is saved to your Foundry scenes directory.</span>
     </div>
     <div class="sc-info-row">
       <span class="sc-info-icon">🔑</span>

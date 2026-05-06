@@ -1,15 +1,29 @@
-/* SCENE CREATOR v1.3.1 — AI-powered scene background generation */
+/* SCENE CREATOR v1.4.0 — AI-powered scene background generation */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config (reuses the same Supabase config as NPC Creator) ── */
-const API_TOKEN='e7ff494f3ec9f4478b702fa021e6997f32022cbd8328c3ce66ab41d4923e7eb1';
+const API_TOKEN='e7ff49...7eb1';
 const API_BASE = 'https://xdvmmjzmxhydachhxmri.supabase.co/functions/v1/data-api';
 const HERMES_URL = 'https://hermes-bridge.luxtenebris.online';
 const DEFAULT_MODEL = 'gemma4:31b-cloud';
 
+/* ── Available grid sizes: { value: "colxrow", label } ── */
+const GRID_SIZES = [
+  { value: '20x20', label: '20 × 20 (1,000 × 1,000 px)' },
+  { value: '20x30', label: '20 × 30 (1,000 × 1,500 px)' },
+  { value: '30x20', label: '30 × 20 (1,500 × 1,000 px)' },
+  { value: '30x30', label: '30 × 30 (1,500 × 1,500 px)' },
+  { value: '30x40', label: '30 × 40 (1,500 × 2,000 px)' },
+  { value: '40x30', label: '40 × 30 (2,000 × 1,500 px)' },
+  { value: '40x40', label: '40 × 40 (2,000 × 2,000 px)' },
+  { value: '50x50', label: '50 × 50 (2,500 × 2,500 px)' }
+];
+const DEFAULT_GRID = '30x30';
+const GRID_SIZE_PX = 50;
+
 class SceneCreator {
   /* ── Generate a battle map image prompt via Ollama Bridge ── */
-  static async _generateMapPrompt(name, description, environment, theme) {
+  static async _generateMapPrompt(name, description, environment, theme, gridCols, gridRows) {
     const ollamaModule = game.modules.get('ollama-bridge');
     let Ob;
     if (ollamaModule?.active) Ob = ollamaModule.api || globalThis.OllamaBridge;
@@ -22,18 +36,18 @@ REFERENCE STYLE ANALYSIS (4 training images):
 - Lighting: Dramatic, high-contrast. Deep shadows with warm highlights. Avg luminance 40-60/255 across the image with bright spots of 150+.
 - Saturation: Rich and vibrant (0.48-0.65 avg). Colors are not desaturated or washed-out.
 - Textures: Highly detailed with strong edge definition (edge intensity 38-46/255). Stone, wood, earth textures with visible grain and material variation.
-- Format: Square tiles designed for grid-based map editors. Can tile seamlessly on edges.
+- Format: Battle map designed for grid-based play.
 - Key visual qualities: Rich material detail, dramatic shadow-to-light transitions, warm earthy color palette, visible surface texture on every tile type.
 
 OUTPUT GUIDELINES:
-- Generate prompts for a 1408×768 pixel widescreen battle map (NOT square tiles)
 - CRITICAL: The image MUST be TOP-DOWN — looking STRAIGHT DOWN at the ground. This is NOT a landscape painting, side view, or horizon shot. Only describe what's visible from directly above: ground terrain, floor layout, paths, walls, obstacles, surface features.
 - Use the reference style: dark, warm, earthy palette with dramatic lighting
 - Include color palette guidance: deep browns, warm neutrals, muted ochres, with subtle warm accent colors
 - Include lighting guidance: high contrast, warm directional light, deep shadows
 - Include texture detail: stone grain, wood grain, earth texture, material variation
+- Aspect ratio: ${gridCols}:${gridRows} (width:height in grid squares)
 - NO text, labels, numbers, grid lines, or UI elements
-- 16:9 aspect ratio, high resolution, game-ready for virtual tabletop
+- High resolution, game-ready for virtual tabletop
 
 Environment types: dungeon, forest, cave, city-street, castle-interior, temple, swamp, coastline, mountain-pass, desert, underwater, planar, tavern, library, laboratory
 Theme types: day, night, dusk-dawn, dark-gloom, magical, fire-lit, underwater, celestial, hellish, fey-wild, ethereal, blood-soaked
@@ -44,6 +58,7 @@ Return ONLY the prompt text. 2-4 detailed sentences. No explanations, no markdow
 Description: ${description || 'A generic fantasy encounter area'}
 Environment: ${environment || 'dungeon'}
 Theme: ${theme || 'day'}
+Grid: ${gridCols} columns × ${gridRows} rows (aspect ratio ${gridCols}:${gridRows})
 
 Generate a battle map image prompt using the reference style described above. The view MUST be looking straight down (bird's eye, not side view). Focus on: ground-level terrain layout, paths and features visible from above, warm earthy color palette, dramatic lighting, rich surface textures.`;
 
@@ -102,34 +117,39 @@ Generate a battle map image prompt using the reference style described above. Th
     return result.imageUrl;
   }
 
-  /* ── Fetch image and convert to data URI ── */
-  static async _imageToDataUri(imageUrl) {
+  /* ── Download image and save to Foundry user data directory ── */
+  static async _saveImageToData(imageUrl, sceneName) {
+    const resp = await fetch(imageUrl);
+    if (!resp.ok) throw new Error(`Failed to download image: HTTP ${resp.status}`);
+    const blob = await resp.blob();
+    const contentType = blob.type || 'image/png';
+    const ext = contentType.includes('png') ? 'png' : 'jpg';
+    const cleanName = sceneName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30) || 'scene';
+    const fileName = `scene-${Date.now()}-${cleanName}.${ext}`;
+    const file = new File([blob], fileName, { type: contentType });
+
     try {
-      const resp = await fetch(imageUrl);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const blob = await resp.blob();
+      const result = await FilePicker.upload('data', 'scenes', file);
+      console.log('Scene Creator: Image saved to', result.path);
+      return result.path;
+    } catch (err) {
+      console.warn('Scene Creator: FilePicker upload failed, falling back to data URI', err);
+      // Fallback: convert to data URI
       return await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-    } catch {
-      // Fallback to the URL
-      return imageUrl;
     }
   }
 
   /* ── Create the Foundry Scene ── */
-  static async createScene(name, imageUri, { environment, theme } = {}) {
-    // Determine scene dimensions from the image or use defaults
-    // 1408x768 is the standard Supabase output — scale to a 25x13 grid at 50px
-    // That gives us a nice manageable battle map
-    const gridSize = 50;
-    const imgWidth = 1408;
-    const imgHeight = 768;
-    const gridW = Math.floor(imgWidth / gridSize);   // 28 columns
-    const gridH = Math.floor(imgHeight / gridSize);  // 15 rows
+  static async createScene(name, imagePath, { environment, theme, gridCols, gridRows } = {}) {
+    const cols = gridCols || 30;
+    const rows = gridRows || 30;
+    const imgWidth = cols * GRID_SIZE_PX;
+    const imgHeight = rows * GRID_SIZE_PX;
 
     // Map environment to a hex color
     const envColors = {
@@ -153,14 +173,14 @@ Generate a battle map image prompt using the reference style described above. Th
 
     const sceneData = {
       name: name || 'Generated Scene',
-      img: imageUri,
+      img: imagePath,
       width: imgWidth,
       height: imgHeight,
       padding: 0,
       backgroundColor: bgColor,
       grid: {
         type: 1,   // Square grid (0=gridless, 1=square, 2=hex-row, 3=hex-col)
-        size: gridSize,
+        size: GRID_SIZE_PX,
         distance: 5,
         units: 'ft.',
         alpha: 0.2,
@@ -186,20 +206,21 @@ Generate a battle map image prompt using the reference style described above. Th
   }
 
   /* ── Full pipeline: describe → AI prompt → generate image → create scene ── */
-  static async generateAndCreateScene(name, description, { environment, theme } = {}) {
+  static async generateAndCreateScene(name, description, { environment, theme, gridCols, gridRows } = {}) {
     // Step 1: AI generates a detailed battle map prompt
-    const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme);
+    const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme, gridCols, gridRows);
     console.log('Scene Creator: AI map prompt:', mapPrompt);
 
     // Step 2: Generate the image
     const imageUrl = await SceneCreator._generateSceneImage(mapPrompt);
     console.log('Scene Creator: Image URL:', imageUrl);
 
-    // Step 3: Convert to data URI for Foundry compatibility
-    const imageUri = await SceneCreator._imageToDataUri(imageUrl);
+    // Step 3: Save image to Foundry user data directory
+    const imagePath = await SceneCreator._saveImageToData(imageUrl, name);
+    console.log('Scene Creator: Image saved to:', imagePath);
 
     // Step 4: Create the scene
-    const scene = await SceneCreator.createScene(name, imageUri, { environment, theme });
+    const scene = await SceneCreator.createScene(name, imagePath, { environment, theme, gridCols, gridRows });
 
     // Step 5: Activate and view the scene
     await scene.activate();
@@ -223,7 +244,7 @@ class SceneCreatorApp extends FormApplication {
       title: 'Scene Creator',
       template: 'modules/scene-creator/templates/scene-creator-app.html',
       width: 520,
-      height: 500,
+      height: 520,
       resizable: true,
       classes: ['scene-creator']
     });
@@ -261,7 +282,9 @@ class SceneCreatorApp extends FormApplication {
         { value: 'fey-wild', label: '🧚 Fey Wild' },
         { value: 'ethereal', label: '👻 Ethereal' },
         { value: 'blood-soaked', label: '🩸 Blood-soaked' }
-      ]
+      ],
+      mapSizes: GRID_SIZES,
+      defaultGrid: DEFAULT_GRID
     };
   }
 
@@ -294,6 +317,10 @@ class SceneCreatorApp extends FormApplication {
     const description = this.element.find('#scene-description').val()?.trim();
     const environment = this.element.find('#scene-environment').val();
     const theme = this.element.find('#scene-theme').val();
+    const gridSizeVal = this.element.find('#scene-grid-size').val() || DEFAULT_GRID;
+
+    // Parse grid dimensions
+    const [gridCols, gridRows] = gridSizeVal.split('x').map(Number);
 
     if (!name) {
       ui.notifications.warn('Enter a scene name.');
@@ -310,19 +337,19 @@ class SceneCreatorApp extends FormApplication {
     try {
       // Step 1: AI prompt generation
       statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> AI crafting battle map description...</div>');
-      const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme);
+      const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme, gridCols, gridRows);
 
       // Step 2: Image generation
       statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Generating image via Supabase...</div>`);
       const imageUrl = await SceneCreator._generateSceneImage(mapPrompt);
 
-      // Step 3: Convert to data URI
-      statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Processing image...</div>`);
-      const imageUri = await SceneCreator._imageToDataUri(imageUrl);
+      // Step 3: Save to Foundry user data
+      statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Saving image to scene library...</div>`);
+      const imagePath = await SceneCreator._saveImageToData(imageUrl, name);
 
       // Step 4: Create the scene
-      statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Creating Foundry scene...</div>`);
-      const scene = await SceneCreator.createScene(name, imageUri, { environment, theme });
+      statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Creating Foundry scene (${gridCols}×${gridRows} grid)...</div>`);
+      const scene = await SceneCreator.createScene(name, imagePath, { environment, theme, gridCols, gridRows });
 
       // Step 5: Activate
       statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Activating scene...</div>`);
@@ -330,10 +357,10 @@ class SceneCreatorApp extends FormApplication {
       await scene.view();
 
       statusArea.html(`<div class="scene-status-step scene-success">
-        <i class="fas fa-check-circle"></i> Scene "${name}" created and activated!
+        <i class="fas fa-check-circle"></i> Scene "${name}" created and activated (${gridCols}×${gridRows})!
       </div>`);
 
-      ui.notifications.success(`Scene "${name}" created!`);
+      ui.notifications.success(`Scene "${name}" created (${gridCols}×${gridRows})!`);
 
       // Reset button after a moment
       setTimeout(() => {
@@ -352,7 +379,7 @@ class SceneCreatorApp extends FormApplication {
 
   static escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
   }
 }
 
@@ -361,7 +388,11 @@ class SceneCreatorApp extends FormApplication {
    ═══════════════════════════════════════════════════════════════════ */
 
 Hooks.once('init', () => {
-  console.log('Scene Creator v1.3.1 initialized');
+  // Register Handlebars helpers
+  Handlebars.registerHelper('eq', function(a, b) {
+    return a === b;
+  });
+  console.log('Scene Creator v1.4.0 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
