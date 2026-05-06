@@ -353,36 +353,44 @@ Hooks.once('init', () => {
   console.log('Scene Creator v1.0.0 initialized');
 });
 
-// Add button to Scene Controls (V10–V14 compatible)
+// Add button to the Scenes section of the Scene toolbar
 Hooks.on('getSceneControlButtons', (controls) => {
-  const control = {
-    name: 'scene-creator',
-    title: 'Scene Creator',
-    icon: 'fas fa-image',
-    layer: 'scene-creator',
-    tools: [{
-      name: 'open',
-      title: 'Generate AI Scene',
-      icon: 'fas fa-wand-magic-sparkles',
-      onClick: () => {
-        const app = new SceneCreatorApp();
-        app.render(true);
-      },
-      button: true
-    }]
+  const tool = {
+    name: 'scene-creator-open',
+    title: 'Generate AI Scene',
+    icon: 'fas fa-wand-magic-sparkles',
+    onClick: () => {
+      const app = new SceneCreatorApp();
+      app.render(true);
+    },
+    button: true
   };
 
   if (Array.isArray(controls)) {
-    controls.push(control);
-  } else if (controls?.addControl) {
-    controls.addControl(control);
-  } else if (controls?.tools) {
-    controls.tools.push(control);
+    // V10–V13: controls is an array of control groups
+    const scenesCtrl = controls.find(c => c.name === 'scenes');
+    if (scenesCtrl) {
+      scenesCtrl.tools.push(tool);
+    } else {
+      controls.push({ name: 'scenes', title: 'Scenes', icon: 'fas fa-map', layer: 'scenes', tools: [tool] });
+    }
   } else if (controls?.constructor?.name === 'SceneControlCollection') {
-    controls.set(control.name, control);
+    // V14: SceneControlCollection — try to get the scenes group
+    const scenesCtrl = controls.get('scenes');
+    if (scenesCtrl) {
+      scenesCtrl.tools.push(tool);
+    } else {
+      controls.set('scenes', { name: 'scenes', title: 'Scenes', icon: 'fas fa-map', layer: 'scenes', tools: [tool] });
+    }
+  } else if (controls?.tools) {
+    controls.tools.push(tool);
   } else {
     const arr = controls?._controls || controls?.controls;
-    if (Array.isArray(arr)) arr.push(control);
+    if (Array.isArray(arr)) {
+      const scenesCtrl = arr.find(c => c.name === 'scenes');
+      if (scenesCtrl) scenesCtrl.tools.push(tool);
+      else arr.push({ name: 'scenes', title: 'Scenes', icon: 'fas fa-map', layer: 'scenes', tools: [tool] });
+    }
   }
 });
 
