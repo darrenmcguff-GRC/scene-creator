@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.2.0 — AI-powered scene background generation */
+/* SCENE CREATOR v1.3.0 — AI-powered scene background generation */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config (reuses the same Supabase config as NPC Creator) ── */
@@ -14,27 +14,38 @@ class SceneCreator {
     let Ob;
     if (ollamaModule?.active) Ob = ollamaModule.api || globalThis.OllamaBridge;
 
-    const systemPrompt = `You are a D&D battle map prompt generator. Your job is to take a scene description, environment type, and theme, and produce a single detailed prompt for an AI image generator.
+    const systemPrompt = `You are a battle map prompt generator for Foundry VTT, trained on a specific visual style.
 
-The image generator will create a TOP-DOWN / BATTLE MAP view — not a side-on illustration. The prompt must describe:
-- A top-down perspective suitable for a virtual tabletop battle grid
-- Terrain, floor layout, walls, obstacles, and features visible from above
-- Color palette, lighting, and atmosphere based on the theme
-- Scale suitable for a 1408×768 pixel battle map
-- NO text, labels, numbers, or grid lines in the image (Foundry adds its own grid)
-- 16:9 aspect ratio, high resolution, game-ready
+REFERENCE STYLE ANALYSIS (4 training images):
+- Perspective: Top-down with subtle isometric depth — objects cast shadows and have visible height, but the camera is looking straight down. Balanced between pure top-down and isometric.
+- Palette: Dark, warm, earthy tones. 80-90% neutral/warm, 10-20% warm accent. Deep browns, muted ochres, warm greys, dark earth tones. RGB values cluster in the 20-80 range per channel.
+- Lighting: Dramatic, high-contrast. Deep shadows with warm highlights. Avg luminance 40-60/255 across the image with bright spots of 150+.
+- Saturation: Rich and vibrant (0.48-0.65 avg). Colors are not desaturated or washed-out.
+- Textures: Highly detailed with strong edge definition (edge intensity 38-46/255). Stone, wood, earth textures with visible grain and material variation.
+- Format: Square tiles designed for grid-based map editors. Can tile seamlessly on edges.
+- Key visual qualities: Rich material detail, dramatic shadow-to-light transitions, warm earthy color palette, visible surface texture on every tile type.
+
+OUTPUT GUIDELINES:
+- Generate prompts for a 1408×768 pixel widescreen battle map (NOT square tiles)
+- Use the reference style: dark, warm, earthy palette with dramatic lighting
+- Describe terrain features, walls, floors, obstacles visible from top-down
+- Include color palette guidance: deep browns, warm neutrals, muted ochres, with subtle warm accent colors
+- Include lighting guidance: high contrast, warm directional light, deep shadows
+- Include texture detail: stone grain, wood grain, earth texture, material variation
+- NO text, labels, numbers, grid lines, or UI elements
+- 16:9 aspect ratio, high resolution, game-ready for virtual tabletop
 
 Environment types: dungeon, forest, cave, city-street, castle-interior, temple, swamp, coastline, mountain-pass, desert, underwater, planar, tavern, library, laboratory
 Theme types: day, night, dusk-dawn, dark-gloom, magical, fire-lit, underwater, celestial, hellish, fey-wild, ethereal, blood-soaked
 
-Return ONLY the prompt text. 1-3 sentences. No explanations, no markdown.`;
+Return ONLY the prompt text. 2-4 detailed sentences. No explanations, no markdown. No quotes. No labels. No grid. No text. No UI elements.`;
 
     const userPrompt = `Scene name: "${name}"
 Description: ${description || 'A generic fantasy encounter area'}
 Environment: ${environment || 'dungeon'}
 Theme: ${theme || 'day'}
 
-Generate a battle map prompt for the AI image generator.`;
+Generate a battle map image prompt using the reference style described above. Focus on: terrain layout visible from above, key features and obstacles, warm earthy color palette, dramatic lighting, rich surface textures.`;
 
     let rawText;
     if (Ob && typeof Ob.chat === 'function') {
@@ -350,7 +361,7 @@ class SceneCreatorApp extends FormApplication {
    ═══════════════════════════════════════════════════════════════════ */
 
 Hooks.once('init', () => {
-  console.log('Scene Creator v1.2.0 initialized');
+  console.log('Scene Creator v1.3.0 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar

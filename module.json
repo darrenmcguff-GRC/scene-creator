@@ -2,7 +2,7 @@
   "id": "scene-creator",
   "title": "Scene Creator",
   "description": "AI-powered scene background generation for Foundry VTT. Describe a scene, pick an environment and theme, and generate a custom map background via Supabase AI. Creates a fully configured scene with proper dimensions for a battle map.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "authors": [
     {
       "name": "Steve"
