@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.3.0 — AI-powered scene background generation */
+/* SCENE CREATOR v1.3.1 — AI-powered scene background generation */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config (reuses the same Supabase config as NPC Creator) ── */
@@ -27,8 +27,8 @@ REFERENCE STYLE ANALYSIS (4 training images):
 
 OUTPUT GUIDELINES:
 - Generate prompts for a 1408×768 pixel widescreen battle map (NOT square tiles)
+- CRITICAL: The image MUST be TOP-DOWN — looking STRAIGHT DOWN at the ground. This is NOT a landscape painting, side view, or horizon shot. Only describe what's visible from directly above: ground terrain, floor layout, paths, walls, obstacles, surface features.
 - Use the reference style: dark, warm, earthy palette with dramatic lighting
-- Describe terrain features, walls, floors, obstacles visible from top-down
 - Include color palette guidance: deep browns, warm neutrals, muted ochres, with subtle warm accent colors
 - Include lighting guidance: high contrast, warm directional light, deep shadows
 - Include texture detail: stone grain, wood grain, earth texture, material variation
@@ -45,7 +45,7 @@ Description: ${description || 'A generic fantasy encounter area'}
 Environment: ${environment || 'dungeon'}
 Theme: ${theme || 'day'}
 
-Generate a battle map image prompt using the reference style described above. Focus on: terrain layout visible from above, key features and obstacles, warm earthy color palette, dramatic lighting, rich surface textures.`;
+Generate a battle map image prompt using the reference style described above. The view MUST be looking straight down (bird's eye, not side view). Focus on: ground-level terrain layout, paths and features visible from above, warm earthy color palette, dramatic lighting, rich surface textures.`;
 
     let rawText;
     if (Ob && typeof Ob.chat === 'function') {
@@ -361,7 +361,7 @@ class SceneCreatorApp extends FormApplication {
    ═══════════════════════════════════════════════════════════════════ */
 
 Hooks.once('init', () => {
-  console.log('Scene Creator v1.3.0 initialized');
+  console.log('Scene Creator v1.3.1 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar

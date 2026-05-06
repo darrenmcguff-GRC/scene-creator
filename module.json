@@ -1,27 +1,27 @@
-{
-  "id": "scene-creator",
-  "title": "Scene Creator",
-  "description": "AI-powered scene background generation for Foundry VTT. Describe a scene, pick an environment and theme, and generate a custom map background via Supabase AI. Creates a fully configured scene with proper dimensions for a battle map.",
-  "version": "1.3.0",
-  "authors": [
-    {
-      "name": "Steve"
-    }
-  ],
-  "compatibility": {
-    "minimum": "13",
-    "verified": "14",
-    "maximum": "14"
-  },
-  "esmodules": [
-    "scripts/scene-creator.js"
-  ],
-  "styles": [
-    "styles/scene-creator.css"
-  ],
-  "manifest": "https://raw.githubusercontent.com/darrenmcguff-GRC/scene-creator/main/module.json",
-  "download": "https://github.com/darrenmcguff-GRC/scene-creator/archive/refs/heads/main.zip",
-  "url": "https://github.com/darrenmcguff-GRC/scene-creator",
-  "readme": "https://raw.githubusercontent.com/darrenmcguff-GRC/scene-creator/main/README.md",
-  "flags": {}
-}
+     1|{
+     2|  "id": "scene-creator",
+     3|  "title": "Scene Creator",
+     4|  "description": "AI-powered scene background generation for Foundry VTT. Describe a scene, pick an environment and theme, and generate a custom map background via Supabase AI. Creates a fully configured scene with proper dimensions for a battle map.",
+     5|  "version": "1.3.1",
+     6|  "authors": [
+     7|    {
+     8|      "name": "Steve"
+     9|    }
+    10|  ],
+    11|  "compatibility": {
+    12|    "minimum": "13",
+    13|    "verified": "14",
+    14|    "maximum": "14"
+    15|  },
+    16|  "esmodules": [
+    17|    "scripts/scene-creator.js"
+    18|  ],
+    19|  "styles": [
+    20|    "styles/scene-creator.css"
+    21|  ],
+    22|  "manifest": "https://raw.githubusercontent.com/darrenmcguff-GRC/scene-creator/main/module.json",
+    23|  "download": "https://github.com/darrenmcguff-GRC/scene-creator/archive/refs/heads/main.zip",
+    24|  "url": "https://github.com/darrenmcguff-GRC/scene-creator",
+    25|  "readme": "https://raw.githubusercontent.com/darrenmcguff-GRC/scene-creator/main/README.md",
+    26|  "flags": {}
+    27|}
