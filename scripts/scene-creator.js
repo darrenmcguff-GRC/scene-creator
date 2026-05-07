@@ -2,7 +2,7 @@
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config (reuses the same Supabase config as NPC Creator) ── */
-const API_TOKEN='e7ff49...7eb1';
+const API_TOKEN='e7ff494f3ec9f4478b702fa021e6997f32022cbd8328c3ce66ab41d4923e7eb1';
 const API_BASE = 'https://xdvmmjzmxhydachhxmri.supabase.co/functions/v1/data-api';
 const HERMES_URL = 'https://hermes-bridge.luxtenebris.online';
 const DEFAULT_MODEL = 'gemma4:31b-cloud';
