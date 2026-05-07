@@ -94,9 +94,24 @@ Generate a battle map image prompt using the reference style described above. Th
     return rawText.replace(/^["']|["']$/g, '').trim();
   }
 
+  /* ── Get Supabase connector if available ── */
+  static _getSupabase() {
+    const mod = game.modules.get('supabase-connector');
+    if (mod?.active && mod.api?.isConfigured) {
+      return mod.api;
+    }
+    return null;
+  }
+
   /* ── Generate the image via Supabase ── */
   static async _generateSceneImage(prompt) {
     const model = 'nano-banana-2';
+    const sb = SceneCreator._getSupabase();
+    if (sb) {
+      const imageUrl = await sb.generateImage(prompt, { model, timeout: 180000 });
+      return imageUrl;
+    }
+    // Fallback to embedded config
     const resp = await fetch(`${API_BASE}/images/generate`, {
       method: 'POST',
       headers: {
