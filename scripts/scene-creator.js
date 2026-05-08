@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.4.6 — Restored Ollama Bridge module usage, fixed CORS via proxy update */
+/* SCENE CREATOR v1.4.7 — Ollama Bridge sends proxy token as query param (no CORS preflight) */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -406,7 +406,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.4.6 initialized');
+  console.log('Scene Creator v1.4.7 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
