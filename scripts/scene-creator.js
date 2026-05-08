@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.5.5 — Capture background path before Scene.create() which mutates sceneData */
+/* SCENE CREATOR v1.5.6 — V14 uses background.source instead of img for scene background */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -183,6 +183,7 @@ Generate a battle map image prompt using the reference style described above. Th
     const sceneData = {
       name: name || 'Generated Scene',
       img: imagePath,
+      background: { source: imagePath },
       width: imgWidth,
       height: imgHeight,
       padding: 0,
@@ -213,14 +214,18 @@ Generate a battle map image prompt using the reference style described above. Th
     console.log('Scene Creator: Creating scene with img:', backgroundImg);
     const scene = await Scene.create(sceneData);
 
-    // V14: the img field may not be set during create — apply via update()
+    // V14: scene backgrounds may use background.source instead of plain img field
     if (scene) {
-      // Check if img was set
       if (!scene.img && backgroundImg) {
         console.log('Scene Creator: Scene.create() did not set img, applying via update()');
-        await scene.update({ img: backgroundImg });
+        // Try setting via background.source as well (V14 may use this)
+        const updated = await scene.update({
+          img: backgroundImg,
+          background: { source: backgroundImg }
+        });
+        console.log('Scene Creator: After update, scene.img:', updated.img,
+          'background.source:', updated.background?.source);
       }
-      console.log('Scene Creator: Scene ready, img:', scene.img || '(none)');
     }
 
     return scene;
@@ -424,7 +429,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.5.5 initialized');
+  console.log('Scene Creator v1.5.6 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
