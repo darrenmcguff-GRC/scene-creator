@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.4.7 — Ollama Bridge sends proxy token as query param (no CORS preflight) */
+/* SCENE CREATOR v1.4.8 — Fix FilePicker for V14 (V2 API), fallback to data URI */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -126,25 +126,26 @@ Generate a battle map image prompt using the reference style described above. Th
     const fileName = `scene-${Date.now()}-${cleanName}.${ext}`;
     const file = new File([blob], fileName, { type: contentType });
 
-    // Ensure the scenes directory exists before uploading
+    // Try V2 FilePicker first (Foundry V14), fall back to V1, then data URI
     try {
-      await FilePicker.createDirectory('data', 'scenes');
-    } catch (_) { /* directory may already exist */ }
-
-    try {
-      const result = await FilePicker.upload('data', 'scenes', file);
-      console.log('Scene Creator: Image saved to', result.path);
-      return result.path;
+      const FP = foundry?.applications?.apps?.FilePicker?.implementation || FilePicker;
+      const result = await FP.upload('data', 'scenes', file, { bucket: 'data', directory: 'scenes' });
+      if (result?.path) {
+        console.log('Scene Creator: Image saved to', result.path);
+        return result.path;
+      }
     } catch (err) {
+      // V2 upload also failed — try V1 with timeout, then fall back to data URI
       console.warn('Scene Creator: FilePicker upload failed, falling back to data URI', err);
-      // Fallback: convert to data URI
-      return await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
     }
+
+    // Fallback: convert image to data URI for immediate display
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   }
 
   /* ── Create the Foundry Scene ── */
@@ -406,7 +407,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.4.7 initialized');
+  console.log('Scene Creator v1.4.8 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
