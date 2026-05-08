@@ -1,9 +1,7 @@
 /* SCENE CREATOR v1.4.0 — AI-powered scene background generation */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
-/* ── API Config (reuses the same Supabase config as NPC Creator) ── */
-const API_TOKEN='e7ff494f3ec9f4478b702fa021e6997f32022cbd8328c3ce66ab41d4923e7eb1';
-const API_BASE = 'https://xdvmmjzmxhydachhxmri.supabase.co/functions/v1/data-api';
+/* ── API Config ── */
 const HERMES_URL = 'https://hermes-bridge.luxtenebris.online';
 const DEFAULT_MODEL = 'gemma4:31b-cloud';
 
@@ -111,25 +109,10 @@ Generate a battle map image prompt using the reference style described above. Th
       const imageUrl = await sb.generateImage(prompt, { model, timeout: 180000 });
       return imageUrl;
     }
-    // Fallback to embedded config
-    const resp = await fetch(`${API_BASE}/images/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_TOKEN}`
-      },
-      body: JSON.stringify({ prompt, model })
-    });
-
-    if (resp.status === 401) throw new Error('Invalid or disabled API token.');
-    if (resp.status === 429) throw new Error('Rate limit exceeded. Please wait.');
-    if (resp.status === 402) throw new Error('AI credits exhausted. Top up in workspace settings.');
-    if (!resp.ok) throw new Error(`Image API HTTP ${resp.status}`);
-
-    const result = await resp.json();
-    if (!result?.imageUrl) throw new Error('Image API returned no image URL.');
-
-    return result.imageUrl;
+    // Supabase Connector not available — show helpful error
+    throw new Error('Supabase Connector module not found or not configured. '
+      + 'Install and enable "Supabase Connector" from Foundry Module Manager, '
+      + 'then enter your Supabase URL and API key in Settings → Module Settings → Supabase Connector.');
   }
 
   /* ── Download image and save to Foundry user data directory ── */
