@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.4.2 — AI-powered scene background generation */
+/* SCENE CREATOR v1.4.6 — Restored Ollama Bridge module usage, fixed CORS via proxy update */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -20,10 +20,11 @@ const DEFAULT_GRID = '30x30';
 const GRID_SIZE_PX = 50;
 
 class SceneCreator {
-  /* ── Generate a battle map image prompt via direct HTTP (avoids CORS with X-Ollama-Proxy header) ── */
+  /* ── Generate a battle map image prompt via Ollama Bridge ── */
   static async _generateMapPrompt(name, description, environment, theme, gridCols, gridRows) {
-    const model = game.settings.get('ollama-bridge', 'ollamaModel') || DEFAULT_MODEL;
-    const ollamaUrl = game.settings.get('ollama-bridge', 'ollamaUrl') || HERMES_URL;
+    const ollamaModule = game.modules.get('ollama-bridge');
+    let Ob;
+    if (ollamaModule?.active) Ob = ollamaModule.api || globalThis.OllamaBridge;
 
     const systemPrompt = `You are a battle map prompt generator for Foundry VTT, trained on a specific visual style.
 
@@ -60,26 +61,32 @@ Grid: ${gridCols} columns × ${gridRows} rows (aspect ratio ${gridCols}:${gridRo
 Generate a battle map image prompt using the reference style described above. The view MUST be looking straight down (bird's eye, not side view). Focus on: ground-level terrain layout, paths and features visible from above, warm earthy color palette, dramatic lighting, rich surface textures.`;
 
     let rawText;
-    const proxyToken = game.settings.get('ollama-bridge', 'ollamaProxyToken') || '';
-    const headers = { 'Content-Type': 'application/json' };
-    if (proxyToken) headers['X-Ollama-Proxy'] = proxyToken;
-
-    const resp = await fetch(`${ollamaUrl}/api/chat`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        stream: false,
-        options: { temperature: 0.6 }
-      })
-    });
-    if (!resp.ok) throw new Error(`AI HTTP ${resp.status}`);
-    const data = await resp.json();
-    rawText = data.message?.content || data.response || '';
+    if (Ob && typeof Ob.chat === 'function') {
+      rawText = await Ob.chat([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ], {
+        model: game.settings.get('ollama-bridge', 'ollamaModel') || DEFAULT_MODEL,
+        temperature: 0.6
+      });
+    } else {
+      const resp = await fetch(`${HERMES_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: DEFAULT_MODEL,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          stream: false,
+          options: { temperature: 0.6 }
+        })
+      });
+      if (!resp.ok) throw new Error(`AI HTTP ${resp.status}`);
+      const data = await resp.json();
+      rawText = data.message?.content || data.response || '';
+    }
 
     // Clean up the response — ensure no markdown, quotes
     return rawText.replace(/^["']|["']$/g, '').trim();
@@ -118,6 +125,11 @@ Generate a battle map image prompt using the reference style described above. Th
     const cleanName = sceneName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30) || 'scene';
     const fileName = `scene-${Date.now()}-${cleanName}.${ext}`;
     const file = new File([blob], fileName, { type: contentType });
+
+    // Ensure the scenes directory exists before uploading
+    try {
+      await FilePicker.createDirectory('data', 'scenes');
+    } catch (_) { /* directory may already exist */ }
 
     try {
       const result = await FilePicker.upload('data', 'scenes', file);
@@ -342,9 +354,20 @@ class SceneCreatorApp extends FormApplication {
       statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Creating Foundry scene (${gridCols}×${gridRows} grid)...</div>`);
       const scene = await SceneCreator.createScene(name, imagePath, { environment, theme, gridCols, gridRows });
 
-      // Step 5: Activate — scene was created, view will switch once resources load
+      // Step 5: Activate and view the scene
       statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Activating scene...</div>`);
       await scene.activate();
+
+      // Wait until the scene is ready before trying to view it
+      for (let attempt = 0; attempt < 20; attempt++) {
+        if (canvas?.ready) break;
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Switching view...</div>`);
+
+      // Give a moment for the scene's resources to register
+      await new Promise(r => setTimeout(r, 1000));
       await scene.view();
 
       statusArea.html(`<div class="scene-status-step scene-success">
@@ -383,7 +406,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.4.2 initialized');
+  console.log('Scene Creator v1.4.6 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
