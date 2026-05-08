@@ -179,11 +179,10 @@ Generate a battle map image prompt using the reference style described above. Th
       'laboratory': '#1a2a2a'
     };
     const bgColor = envColors[environment] || '#1a1a2e';
-
     const sceneData = {
       name: name || 'Generated Scene',
       img: imagePath,
-      background: { source: imagePath },
+      background: { src: imagePath },
       width: imgWidth,
       height: imgHeight,
       padding: 0,
@@ -210,7 +209,7 @@ Generate a battle map image prompt using the reference style described above. Th
     };
 
     const scene = await Scene.create(sceneData);
-    console.log('Scene Creator: Scene created, img:', scene?.img, 'background.source:', scene?.background?.source);
+    console.log('Scene Creator: Scene created, img:', scene?.img, 'background.src:', scene?.background?.src);
 
     return scene;
   }
