@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.5.4 — add createScene entry log to debug undefined imagePath */
+/* SCENE CREATOR v1.5.5 — Capture background path before Scene.create() which mutates sceneData */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -208,13 +208,19 @@ Generate a battle map image prompt using the reference style described above. Th
       }
     };
 
+    // Save path separately — Foundry V14's Scene.create() mutates the data object
+    const backgroundImg = imagePath;
+    console.log('Scene Creator: Creating scene with img:', backgroundImg);
     const scene = await Scene.create(sceneData);
 
-    // V14: ensure the background image is properly linked
+    // V14: the img field may not be set during create — apply via update()
     if (scene) {
-      // Force the image to resolve through Foundry's asset system
-      await scene.update({ img: sceneData.img });
-      console.log('Scene Creator: Scene created with img:', sceneData.img);
+      // Check if img was set
+      if (!scene.img && backgroundImg) {
+        console.log('Scene Creator: Scene.create() did not set img, applying via update()');
+        await scene.update({ img: backgroundImg });
+      }
+      console.log('Scene Creator: Scene ready, img:', scene.img || '(none)');
     }
 
     return scene;
@@ -418,7 +424,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.5.4 initialized');
+  console.log('Scene Creator v1.5.5 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
