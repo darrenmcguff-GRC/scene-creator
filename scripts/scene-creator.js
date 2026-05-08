@@ -154,6 +154,7 @@ Generate a battle map image prompt using the reference style described above. Th
 
   /* ── Create the Foundry Scene ── */
   static async createScene(name, imagePath, { environment, theme, gridCols, gridRows } = {}) {
+    console.log('Scene Creator: createScene called with imagePath:', imagePath);
     const cols = gridCols || 30;
     const rows = gridRows || 30;
     const imgWidth = cols * GRID_SIZE_PX;
