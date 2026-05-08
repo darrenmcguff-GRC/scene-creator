@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.5.0 — Removed upload timeout, let FilePicker finish naturally */
+/* SCENE CREATOR v1.5.1 — Fix webp content-type detection, add debug logging for FilePicker result */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -121,20 +121,37 @@ Generate a battle map image prompt using the reference style described above. Th
     if (!resp.ok) throw new Error(`Failed to download image: HTTP ${resp.status}`);
     const blob = await resp.blob();
     const contentType = blob.type || 'image/png';
-    const ext = contentType.includes('png') ? 'png' : 'jpg';
+
+    // Map content-type to file extension correctly
+    const extMap = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+      'image/bmp': 'bmp'
+    };
+    const ext = extMap[contentType] || 'png';
+
     const cleanName = sceneName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30) || 'scene';
     const fileName = `scene-${Date.now()}-${cleanName}.${ext}`;
     const file = new File([blob], fileName, { type: contentType });
 
-    // Upload via Foundry's FilePicker (V2 API in V14, V1 API will be removed in V15)
+    // Upload via Foundry's FilePicker
     const FP = foundry?.applications?.apps?.FilePicker?.implementation
       || foundry?.applications?.apps?.FilePicker
       || FilePicker;
 
     const result = await FP.upload('data', 'scenes', file);
+
+    // Log what FilePicker returns so we can debug
+    console.log('Scene Creator: FilePicker result', JSON.stringify(result));
+
+    // FilePicker returns a path like 'scenes/filename.ext' (relative to Data/)
     if (result?.path) {
-      console.log('Scene Creator: Image saved to', result.path);
-      return result.path;
+      const imagePath = result.path.replace(/^data\//, '');
+      console.log('Scene Creator: Image saved to', imagePath);
+      return imagePath;
     }
 
     throw new Error('FilePicker returned no path. Ensure Data/scenes/ directory exists on the server.');
@@ -399,7 +416,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.5.0 initialized');
+  console.log('Scene Creator v1.5.1 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
