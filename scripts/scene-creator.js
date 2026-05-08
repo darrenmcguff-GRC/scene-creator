@@ -20,11 +20,10 @@ const DEFAULT_GRID = '30x30';
 const GRID_SIZE_PX = 50;
 
 class SceneCreator {
-  /* ── Generate a battle map image prompt via Ollama Bridge ── */
+  /* ── Generate a battle map image prompt via direct HTTP (avoids CORS with X-Ollama-Proxy header) ── */
   static async _generateMapPrompt(name, description, environment, theme, gridCols, gridRows) {
-    const ollamaModule = game.modules.get('ollama-bridge');
-    let Ob;
-    if (ollamaModule?.active) Ob = ollamaModule.api || globalThis.OllamaBridge;
+    const model = game.settings.get('ollama-bridge', 'ollamaModel') || DEFAULT_MODEL;
+    const ollamaUrl = game.settings.get('ollama-bridge', 'ollamaUrl') || HERMES_URL;
 
     const systemPrompt = `You are a battle map prompt generator for Foundry VTT, trained on a specific visual style.
 
@@ -61,32 +60,26 @@ Grid: ${gridCols} columns × ${gridRows} rows (aspect ratio ${gridCols}:${gridRo
 Generate a battle map image prompt using the reference style described above. The view MUST be looking straight down (bird's eye, not side view). Focus on: ground-level terrain layout, paths and features visible from above, warm earthy color palette, dramatic lighting, rich surface textures.`;
 
     let rawText;
-    if (Ob && typeof Ob.chat === 'function') {
-      rawText = await Ob.chat([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ], {
-        model: game.settings.get('ollama-bridge', 'ollamaModel') || DEFAULT_MODEL,
-        temperature: 0.6
-      });
-    } else {
-      const resp = await fetch(`${HERMES_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: DEFAULT_MODEL,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          stream: false,
-          options: { temperature: 0.6 }
-        })
-      });
-      if (!resp.ok) throw new Error(`AI HTTP ${resp.status}`);
-      const data = await resp.json();
-      rawText = data.message?.content || data.response || '';
-    }
+    const proxyToken = game.settings.get('ollama-bridge', 'ollamaProxyToken') || '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (proxyToken) headers['X-Ollama-Proxy'] = proxyToken;
+
+    const resp = await fetch(`${ollamaUrl}/api/chat`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        stream: false,
+        options: { temperature: 0.6 }
+      })
+    });
+    if (!resp.ok) throw new Error(`AI HTTP ${resp.status}`);
+    const data = await resp.json();
+    rawText = data.message?.content || data.response || '';
 
     // Clean up the response — ensure no markdown, quotes
     return rawText.replace(/^["']|["']$/g, '').trim();
