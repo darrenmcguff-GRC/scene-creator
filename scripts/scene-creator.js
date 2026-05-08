@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.5.6 — V14 uses background.source instead of img for scene background */
+/* SCENE CREATOR v1.5.7 — Remove broken scene.update(), pass background.source in sceneData */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -209,24 +209,8 @@ Generate a battle map image prompt using the reference style described above. Th
       }
     };
 
-    // Save path separately — Foundry V14's Scene.create() mutates the data object
-    const backgroundImg = imagePath;
-    console.log('Scene Creator: Creating scene with img:', backgroundImg);
     const scene = await Scene.create(sceneData);
-
-    // V14: scene backgrounds may use background.source instead of plain img field
-    if (scene) {
-      if (!scene.img && backgroundImg) {
-        console.log('Scene Creator: Scene.create() did not set img, applying via update()');
-        // Try setting via background.source as well (V14 may use this)
-        const updated = await scene.update({
-          img: backgroundImg,
-          background: { source: backgroundImg }
-        });
-        console.log('Scene Creator: After update, scene.img:', updated.img,
-          'background.source:', updated.background?.source);
-      }
-    }
+    console.log('Scene Creator: Scene created, img:', scene?.img, 'background.source:', scene?.background?.source);
 
     return scene;
   }
@@ -429,7 +413,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.5.6 initialized');
+  console.log('Scene Creator v1.5.7 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
