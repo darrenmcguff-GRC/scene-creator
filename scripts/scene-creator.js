@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.4.9 — FilePicker timeout + constructed path fallback, no data URI */
+/* SCENE CREATOR v1.5.0 — Removed upload timeout, let FilePicker finish naturally */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -126,28 +126,18 @@ Generate a battle map image prompt using the reference style described above. Th
     const fileName = `scene-${Date.now()}-${cleanName}.${ext}`;
     const file = new File([blob], fileName, { type: contentType });
 
-    // Use V2 FilePicker with timeout — file gets saved even if promise hangs
+    // Upload via Foundry's FilePicker (V2 API in V14, V1 API will be removed in V15)
     const FP = foundry?.applications?.apps?.FilePicker?.implementation
       || foundry?.applications?.apps?.FilePicker
       || FilePicker;
 
-    try {
-      const result = await Promise.race([
-        FP.upload('data', 'scenes', file),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 10000))
-      ]);
-      if (result?.path) {
-        console.log('Scene Creator: Image saved to', result.path);
-        return result.path;
-      }
-    } catch (err) {
-      // Upload may have timed out, but file was likely saved anyway
-      // Construct the expected path
-      console.warn('Scene Creator: FilePicker upload issue, using constructed path', err.message);
+    const result = await FP.upload('data', 'scenes', file);
+    if (result?.path) {
+      console.log('Scene Creator: Image saved to', result.path);
+      return result.path;
     }
 
-    // Construct the path manually — Foundry saves to Data/scenes/
-    return `scenes/${fileName}`;
+    throw new Error('FilePicker returned no path. Ensure Data/scenes/ directory exists on the server.');
   }
 
   /* ── Create the Foundry Scene ── */
@@ -409,7 +399,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.4.9 initialized');
+  console.log('Scene Creator v1.5.0 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
