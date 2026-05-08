@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.4.0 — AI-powered scene background generation */
+/* SCENE CREATOR v1.4.2 — AI-powered scene background generation */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -390,7 +390,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.4.0 initialized');
+  console.log('Scene Creator v1.4.2 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
