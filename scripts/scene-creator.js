@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.5.3 — Always use .webp, fix path prefix, scene.update img after create */
+/* SCENE CREATOR v1.5.4 — add createScene entry log to debug undefined imagePath */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -418,7 +418,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.5.3 initialized');
+  console.log('Scene Creator v1.5.4 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
