@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.5.2 — Use HTTP /upload endpoint instead of FilePicker */
+/* SCENE CREATOR v1.5.3 — Always use .webp, fix path prefix, scene.update img after create */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -120,24 +120,14 @@ Generate a battle map image prompt using the reference style described above. Th
     const resp = await fetch(imageUrl);
     if (!resp.ok) throw new Error(`Failed to download image: HTTP ${resp.status}`);
     const blob = await resp.blob();
-    const contentType = blob.type || 'image/png';
 
-    // Map content-type to file extension correctly
-    const extMap = {
-      'image/png': 'png',
-      'image/jpeg': 'jpg',
-      'image/jpg': 'jpg',
-      'image/webp': 'webp',
-      'image/gif': 'gif',
-      'image/bmp': 'bmp'
-    };
-    const ext = extMap[contentType] || 'png';
-
+    // Foundry's Media Optimizer converts all images to .webp regardless
+    // Always use .webp so the scene path matches the converted file
     const cleanName = sceneName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30) || 'scene';
-    const fileName = `scene-${Date.now()}-${cleanName}.${ext}`;
-    const file = new File([blob], fileName, { type: contentType });
+    const fileName = `scene-${Date.now()}-${cleanName}.webp`;
+    const file = new File([blob], fileName, { type: 'image/webp' });
 
-    // Upload via Foundry's built-in upload endpoint (works in all versions)
+    // Upload via Foundry's built-in upload endpoint
     const formData = new FormData();
     formData.append('source', 'data');
     formData.append('target', 'scenes');
@@ -153,7 +143,8 @@ Generate a battle map image prompt using the reference style described above. Th
     console.log('Scene Creator: Upload result', JSON.stringify(result));
 
     if (result?.path) {
-      const imagePath = result.path;
+      // Ensure path includes the target directory prefix
+      const imagePath = result.path.startsWith('scenes/') ? result.path : `scenes/${result.path}`;
       console.log('Scene Creator: Image saved to', imagePath);
       return imagePath;
     }
@@ -217,7 +208,13 @@ Generate a battle map image prompt using the reference style described above. Th
     };
 
     const scene = await Scene.create(sceneData);
-    if (!scene) throw new Error('Failed to create scene.');
+
+    // V14: ensure the background image is properly linked
+    if (scene) {
+      // Force the image to resolve through Foundry's asset system
+      await scene.update({ img: sceneData.img });
+      console.log('Scene Creator: Scene created with img:', sceneData.img);
+    }
 
     return scene;
   }
@@ -420,7 +417,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.5.2 initialized');
+  console.log('Scene Creator v1.5.3 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
