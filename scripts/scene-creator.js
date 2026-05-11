@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.5.8 — V14: use levels for background */
+/* SCENE CREATOR v1.6.0 — Scene Editor: regenerate backgrounds on existing scenes */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -259,7 +259,245 @@ Generate a battle map image prompt using the reference style described above. Th
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   APPLICATION
+   SCENE EDITOR — regenerate background for an existing scene
+   ═══════════════════════════════════════════════════════════════════ */
+class SceneEditor {
+  /**
+   * Launch the editor for a specific scene.
+   * @param {Scene} scene
+   */
+  static edit(scene) {
+    if (!scene) { ui.notifications.warn('Select a scene first.'); return; }
+    new SceneEditorApp(scene).render(true);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCENE EDITOR APPLICATION
+   ═══════════════════════════════════════════════════════════════════ */
+class SceneEditorApp extends FormApplication {
+  constructor(scene) {
+    super({});
+    this._scene = scene;
+  }
+
+  static get defaultOptions() {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: 'scene-editor-app',
+      title: 'AI Scene Editor',
+      template: 'modules/scene-creator/templates/scene-editor-app.html',
+      width: 480,
+      height: 520,
+      resizable: true,
+      classes: ['scene-creator']
+    });
+  }
+
+  getData() {
+    const scene = this._scene;
+    const levels = scene?.levels;
+    let currentThumb = null;
+
+    // Try to get the current background thumbnail
+    const firstLevel = levels?.get(scene.initialLevel) || levels?.first();
+    if (firstLevel?.background?.src) {
+      currentThumb = firstLevel.background.src;
+    } else if (scene.img) {
+      currentThumb = scene.img;
+    }
+
+    return {
+      sceneId: scene?.id || '',
+      sceneName: scene?.name || 'Unknown Scene',
+      currentThumb,
+      styles: [
+        { value: 'same', label: 'Same as original' },
+        { value: 'darker', label: 'Darker & more ominous' },
+        { value: 'brighter', label: 'Brighter & cheerful' },
+        { value: 'warmer', label: 'Warmer tones' },
+        { value: 'ruined', label: 'Ruined / decrepit' },
+        { value: 'magical', label: 'Magical glow / enchantment' },
+        { value: 'season-winter', label: 'Winter / snow-covered' },
+        { value: 'season-autumn', label: 'Autumn / fall colours' },
+        { value: 'flooded', label: 'Flooded / water-covered' },
+        { value: 'burned', label: 'Burned / fire-damaged' },
+        { value: 'night', label: 'Night / moonlight' },
+        { value: 'dawn', label: 'Dawn / sunrise' }
+      ]
+    };
+  }
+
+  activateListeners(html) {
+    super.activateListeners(html);
+    html.find('#se-btn-generate').click(() => this._regenerate());
+    html.find('#se-description').on('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        this._regenerate();
+      }
+    });
+  }
+
+  async _regenerate() {
+    const scene = this._scene;
+    if (!scene) { ui.notifications.warn('No scene selected.'); return; }
+
+    const desc = this.element.find('#se-description').val()?.trim();
+    const style = this.element.find('#se-style').val() || 'same';
+
+    if (!desc) {
+      ui.notifications.warn('Describe the new background you want.');
+      return;
+    }
+
+    const btn = this.element.find('#se-btn-generate');
+    const statusArea = this.element.find('#se-status');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Working...');
+    statusArea.show();
+    statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Preparing AI prompt...</div>');
+
+    try {
+      // Get scene dimensions from the existing scene
+      const gridCols = Math.round(scene.width / (scene.grid?.size || 50));
+      const gridRows = Math.round(scene.height / (scene.grid?.size || 50));
+      const theme = 'day'; // Default
+      const environment = 'dungeon'; // Default
+
+      // Inject the style instruction into the description
+      const stylePrompt = style === 'same' ? '' : `\n\nSTYLE TRANSFORMATION: ${SceneEditorApp._styleInstructions(style)}`;
+
+      // Step 1: Generate a map prompt using the same AI pipeline but scene-editing focused
+      statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> AI designing new background...</div>');
+
+      const editPrompt = await SceneEditor._generateEditPrompt(scene.name, desc, stylePrompt, gridCols, gridRows);
+
+      // Step 2: Generate the image
+      statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Generating image via AI...</div>');
+      const imageUrl = await SceneCreator._generateSceneImage(editPrompt);
+
+      // Step 3: Save the image
+      statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Saving image...</div>');
+      const imagePath = await SceneCreator._saveImageToData(imageUrl, 'edit-' + scene.name);
+
+      // Step 4: Update the scene's Level background
+      statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Updating scene background...</div>');
+
+      const firstLevel = scene.levels?.get(scene.initialLevel) || scene.levels?.first();
+      if (firstLevel) {
+        // V14: update the embedded Level document's background
+        await scene.updateEmbeddedDocuments('Level', [{
+          _id: firstLevel.id,
+          background: { src: imagePath, color: scene.backgroundColor || '#1a1a2e' }
+        }]);
+      } else {
+        // Fallback: update scene img (V10-V13 compat, or edge case)
+        await scene.update({ img: imagePath });
+      }
+
+      // Step 5: Refresh the canvas
+      statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Refreshing canvas...</div>');
+
+      // Re-draw the canvas to show the new background
+      if (canvas?.scene?.id === scene.id && canvas?.draw) {
+        await canvas.draw();
+      }
+
+      statusArea.html(`<div class="scene-status-step scene-success">
+        <i class="fas fa-check-circle"></i> Background updated for "${scene.name}"!
+      </div>`);
+      ui.notifications.success(`Background updated for "${scene.name}"`);
+
+      setTimeout(() => {
+        btn.prop('disabled', false).html('<i class="fas fa-wand-magic-sparkles"></i> ✨ Regenerate Background');
+      }, 2000);
+
+    } catch (err) {
+      console.error('Scene Editor error:', err);
+      statusArea.html(`<div class="scene-status-step scene-error">
+        <i class="fas fa-exclamation-triangle"></i> ${SceneCreatorApp.escapeHtml(err.message)}
+      </div>`);
+      ui.notifications.error(`Failed to edit scene: ${err.message}`);
+      btn.prop('disabled', false).html('<i class="fas fa-wand-magic-sparkles"></i> ✨ Regenerate Background');
+    }
+  }
+
+  /**
+   * Generate a prompt specifically for editing a scene's background.
+   */
+  static async _generateEditPrompt(name, userDesc, styleInstruction, gridCols, gridRows) {
+    const ollamaModule = game.modules.get('ollama-bridge');
+    let Ob;
+    if (ollamaModule?.active) Ob = ollamaModule.api || globalThis.OllamaBridge;
+
+    const systemPrompt = `You are a battle map prompt generator for Foundry VTT.
+
+OUTPUT GUIDELINES:
+- CRITICAL: The image MUST be TOP-DOWN — looking STRAIGHT DOWN at the ground. This is NOT a landscape painting, side view, or horizon shot.
+- Palette: Dark, warm, earthy tones. Deep browns, muted ochres, warm greys, dark earth tones.
+- Lighting: Dramatic, high-contrast with warm highlights.
+- Textures: Highly detailed, visible material variation (stone, wood, earth).
+- Aspect ratio: ${gridCols}:${gridRows}.
+- NO text, labels, numbers, grid lines, or UI elements.
+
+The user is EDITING an existing scene's background. Incorporate their description of the changes they want.${styleInstruction}
+
+Return ONLY the prompt text. 2-4 detailed sentences. No explanations, no markdown. No quotes.`;
+
+    const userPrompt = `Scene name: "${name}"
+User wants to change the background: ${userDesc}
+Grid: ${gridCols} × ${gridRows}
+Generate a top-down battle map prompt incorporating these changes.`;
+
+    let rawText;
+    if (Ob && typeof Ob.chat === 'function') {
+      rawText = await Ob.chat([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ], {
+        model: game.settings.get('ollama-bridge', 'ollamaModel') || DEFAULT_MODEL,
+        temperature: 0.7
+      });
+    } else {
+      const resp = await fetch(`${HERMES_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: DEFAULT_MODEL,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          stream: false,
+          options: { temperature: 0.7 }
+        })
+      });
+      if (!resp.ok) throw new Error(`AI HTTP ${resp.status}`);
+      const data = await resp.json();
+      rawText = data.message?.content || data.response || '';
+    }
+    return rawText.replace(/^["']|["']$/g, '').trim();
+  }
+
+  static _styleInstructions(style) {
+    const map = {
+      'darker': 'Make the scene significantly darker. Deep shadows, dim lighting, heavy atmosphere. Reduce brightness by 60%. Add heavy shadows and gloom.',
+      'brighter': 'Make the scene brighter and more welcoming. Increase overall lighting, add warm light sources, brighter colours. Sunny, clear visibility.',
+      'warmer': 'Shift the entire palette to warm tones. Golds, ambers, warm browns. Reduce cool tones. Sunlit warmth throughout.',
+      'ruined': 'Transform into a ruined, decrepit state. Crumbling structures, scattered debris, cracked surfaces, overgrown with weeds and moss, signs of decay and collapse.',
+      'magical': 'Add a magical glow and enchantment. Faint blue/purple luminescence, floating motes of light, glowing runes or crystals, ethereal shimmering effect.',
+      'season-winter': 'Transform into winter. Snow covering the ground, frost on surfaces, pale cold lighting, bare trees, ice formations, a cold blue-white palette.',
+      'season-autumn': 'Transform into autumn. Fallen leaves covering the ground, warm orange/red/brown foliage, golden afternoon light, a rich warm palette.',
+      'flooded': 'Flood the scene with shallow water. Water covering the ground with visible ripples and reflections, partially submerged objects, wet surfaces glistening.',
+      'burned': 'Show recent fire damage. Blackened surfaces, charred remains, smouldering embers, cracked heat-blasted stone, smoke haze, scorch marks everywhere.',
+      'night': 'Set at night. Deep darkness with moonlight illumination, long shadows, starlight, a cool blue-silver palette, pools of shadow between lit areas.',
+      'dawn': 'Set at dawn/sunrise. Golden-pink light from the horizon, long shadows, warm glow spreading across the scene, morning mist, dew on surfaces.'
+    };
+    return map[style] || '';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   APPLICATION — Scene Creator (generate new scene)
    ═══════════════════════════════════════════════════════════════════ */
 class SceneCreatorApp extends FormApplication {
   constructor() {
@@ -431,7 +669,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.5.9 initialized');
+  console.log('Scene Creator v1.6.0 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
@@ -500,4 +738,75 @@ Hooks.on('renderSceneDirectory', (app, html, data) => {
     app.render(true);
   });
   header.find('.header-actions').append(btn);
+
+  // Add per-scene edit buttons on hover
+  $html.find('.scene-directory-item').each(function() {
+    const $item = $(this);
+    if ($item.find('.sc-directory-edit-btn').length) return; // already added
+    const editBtn = $(`
+      <div class="sc-directory-edit-btn" title="Edit scene background with AI">
+        <i class="fas fa-pen-fancy"></i>
+      </div>
+    `);
+    editBtn.on('click', (e) => {
+      e.stopPropagation();
+      const sceneId = $item.data('document-id') || $item.data('entity-id');
+      const scene = game.scenes?.get(sceneId);
+      SceneEditor.edit(scene);
+    });
+    $item.addClass('scene-directory-item');
+    $item.append(editBtn);
+  });
+});
+
+// Add context menu entries for scenes (right-click menu)
+Hooks.on('getSceneDirectoryEntryContext', (html, options) => {
+  options.push({
+    name: 'Edit Background with AI',
+    icon: '<i class="fas fa-pen-fancy"></i>',
+    condition: li => {
+      const sceneId = li.data('document-id') || li.data('entity-id');
+      return !!game.scenes?.get(sceneId);
+    },
+    callback: li => {
+      const sceneId = li.data('document-id') || li.data('entity-id');
+      const scene = game.scenes?.get(sceneId);
+      SceneEditor.edit(scene);
+    }
+  });
+});
+
+// Add Edit button to scene toolbar (alongside Generate)
+Hooks.on('getSceneControlButtons', (controls) => {
+  // Re-use the existing handler logic but add an editor tool
+  const editorTool = {
+    name: 'scene-editor-open',
+    title: 'Edit Active Scene',
+    icon: 'fas fa-pen-fancy',
+    onClick: () => {
+      const scene = canvas?.scene || game.scenes?.viewed;
+      SceneEditor.edit(scene);
+    },
+    button: true
+  };
+
+  // V14: SceneControlCollection
+  if (controls?.constructor?.name === 'SceneControlCollection') {
+    const scenesCtrl = controls.get('scenes');
+    if (scenesCtrl) {
+      controls.set('scenes', foundry.utils.mergeObject(scenesCtrl, {
+        tools: [...(scenesCtrl.tools || []), editorTool]
+      }, { inplace: false }));
+    }
+    return;
+  }
+
+  // V10-V13: array of control groups
+  if (Array.isArray(controls)) {
+    const scenesCtrl = controls.find(c => c.name === 'scenes');
+    if (scenesCtrl) {
+      scenesCtrl.tools.push(editorTool);
+    }
+    return;
+  }
 });

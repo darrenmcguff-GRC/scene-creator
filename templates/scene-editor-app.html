@@ -1,0 +1,43 @@
+<form class="scene-creator-app" autocomplete="off">
+  <div class="sc-card sc-card-hero">
+    <label class="sc-label-hero"><i class="fas fa-pen-fancy"></i> AI Scene Editor</label>
+    <p class="sc-hint">
+      Edit the background image of <strong>{{sceneName}}</strong>.
+      Describe what you want the new background to look like — keep the same grid/environment settings.
+    </p>
+
+    <div class="sc-scene-preview" id="se-current-preview" style="display:{{#if currentThumb}}block{{else}}none{{/if}};">
+      <label class="sc-field-label">Current Background</label>
+      <img id="se-thumb" src="{{currentThumb}}" class="se-thumb-img" alt="Current scene background">
+    </div>
+
+    <input type="hidden" id="se-scene-id" value="{{sceneId}}">
+
+    <label class="sc-field-label">Describe the New Background</label>
+    <textarea id="se-description" class="sc-textarea" rows="4"
+      placeholder="Describe how the scene should change — new terrain, different mood, additional features, different environment...
+Example: Transform this dungeon into an overgrown ruin. Add crumbling stone walls covered in ivy, a cracked floor with roots breaking through, and shafts of golden sunlight piercing through holes in the ceiling. Keep the same layout and grid dimensions."></textarea>
+
+    <label class="sc-field-label">Style Preset (optional)</label>
+    <select id="se-style" class="sc-select-sm">
+      <option value="same">Same as original</option>
+      <option value="darker">Darker &amp; more ominous</option>
+      <option value="brighter">Brighter &amp; cheerful</option>
+      <option value="warmer">Warmer tones</option>
+      <option value="ruined">Ruined / decrepit</option>
+      <option value="magical">Magical glow / enchantment</option>
+      <option value="season-winter">Winter / snow-covered</option>
+      <option value="season-autumn">Autumn / fall colours</option>
+      <option value="flooded">Flooded / water-covered</option>
+      <option value="burned">Burned / fire-damaged</option>
+      <option value="night">Night / moonlight</option>
+      <option value="dawn">Dawn / sunrise</option>
+    </select>
+
+    <button type="button" class="sc-btn sc-btn-primary sc-btn-hero" id="se-btn-generate" style="margin-top:12px;">
+      <i class="fas fa-wand-magic-sparkles"></i> ✨ Regenerate Background
+    </button>
+
+    <div id="se-status" class="sc-status" style="display:none;"></div>
+  </div>
+</form>
