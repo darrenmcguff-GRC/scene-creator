@@ -431,7 +431,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.5.9 initialized');
+  console.log('Scene Creator v1.5.7 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar

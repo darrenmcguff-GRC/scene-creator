@@ -1,0 +1,8 @@
+--- scene-creator.js
++++ scene-creator.js
+@@ -1,4 +1,4 @@
+-/* SCENE CREATOR v1.5.7 — Remove broken scene.update(), pass background.source in sceneData */
++/* SCENE CREATOR v1.5.9 — V14: use embedded Level documents for background */
+ const SCENE_CREATOR_MODULE = 'scene-creator';
+ 
+ /* ── API Config ── */
