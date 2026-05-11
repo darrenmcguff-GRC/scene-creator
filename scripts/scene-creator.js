@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.6.0 — Scene Editor: regenerate backgrounds on existing scenes */
+/* SCENE CREATOR v1.6.1 — Characters toggle + scale fix for 5ft squares */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -21,7 +21,7 @@ const GRID_SIZE_PX = 50;
 
 class SceneCreator {
   /* ── Generate a battle map image prompt via Ollama Bridge ── */
-  static async _generateMapPrompt(name, description, environment, theme, gridCols, gridRows) {
+  static async _generateMapPrompt(name, description, environment, theme, gridCols, gridRows, includeCharacters = false) {
     const ollamaModule = game.modules.get('ollama-bridge');
     let Ob;
     if (ollamaModule?.active) Ob = ollamaModule.api || globalThis.OllamaBridge;
@@ -39,6 +39,7 @@ REFERENCE STYLE ANALYSIS (4 training images):
 
 OUTPUT GUIDELINES:
 - CRITICAL: The image MUST be TOP-DOWN — looking STRAIGHT DOWN at the ground. This is NOT a landscape painting, side view, or horizon shot. Only describe what's visible from directly above: ground terrain, floor layout, paths, walls, obstacles, surface features.
+- SCALE: Each grid square is 50 × 50 pixels representing 5 feet. A human-sized creature fills roughly one square (50px across). A 6ft human from above is about 40-50px wide. Doors are 5ft wide (one square). Furniture like a table is 5-10ft across (1-2 squares). The entire image is ${gridCols} squares wide and ${gridRows} squares tall. Keep all objects to correct scale — a medium creature is NOT 7 squares tall.
 - Use the reference style: dark, warm, earthy palette with dramatic lighting
 - Include color palette guidance: deep browns, warm neutrals, muted ochres, with subtle warm accent colors
 - Include lighting guidance: high contrast, warm directional light, deep shadows
@@ -52,13 +53,18 @@ Theme types: day, night, dusk-dawn, dark-gloom, magical, fire-lit, underwater, c
 
 Return ONLY the prompt text. 2-4 detailed sentences. No explanations, no markdown. No quotes. No labels. No grid. No text. No UI elements.`;
 
+    const charactersInstruction = includeCharacters
+      ? 'Include a few characters or humanoid figures in the scene for scale reference. Make sure they are correctly scaled: a medium humanoid should be about 40-50px across (roughly one grid square wide). They appear as top-down silhouettes or simple figure outlines. Do NOT make them giant.'
+      : 'DO NOT include any characters, people, humanoids, creatures, or living beings in the scene. The map should show only the environment — terrain, architecture, props, furniture, obstacles. No people whatsoever.';
+
     const userPrompt = `Scene name: "${name}"
 Description: ${description || 'A generic fantasy encounter area'}
 Environment: ${environment || 'dungeon'}
 Theme: ${theme || 'day'}
 Grid: ${gridCols} columns × ${gridRows} rows (aspect ratio ${gridCols}:${gridRows})
+Characters in scene: ${includeCharacters ? 'Yes' : 'No'}
 
-Generate a battle map image prompt using the reference style described above. The view MUST be looking straight down (bird's eye, not side view). Focus on: ground-level terrain layout, paths and features visible from above, warm earthy color palette, dramatic lighting, rich surface textures.`;
+Generate a battle map image prompt using the reference style described above. The view MUST be looking straight down (bird's eye, not side view). ${charactersInstruction} Focus on: ground-level terrain layout, paths and features visible from above, warm earthy color palette, dramatic lighting, rich surface textures.`;
 
     let rawText;
     if (Ob && typeof Ob.chat === 'function') {
@@ -234,9 +240,9 @@ Generate a battle map image prompt using the reference style described above. Th
   }
 
   /* ── Full pipeline: describe → AI prompt → generate image → create scene ── */
-  static async generateAndCreateScene(name, description, { environment, theme, gridCols, gridRows } = {}) {
+  static async generateAndCreateScene(name, description, { environment, theme, gridCols, gridRows, includeCharacters } = {}) {
     // Step 1: AI generates a detailed battle map prompt
-    const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme, gridCols, gridRows);
+    const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme, gridCols, gridRows, includeCharacters);
     console.log('Scene Creator: AI map prompt:', mapPrompt);
 
     // Step 2: Generate the image
@@ -584,6 +590,7 @@ class SceneCreatorApp extends FormApplication {
     const environment = this.element.find('#scene-environment').val();
     const theme = this.element.find('#scene-theme').val();
     const gridSizeVal = this.element.find('#scene-grid-size').val() || DEFAULT_GRID;
+    const includeCharacters = this.element.find('#scene-include-characters').is(':checked');
 
     // Parse grid dimensions
     const [gridCols, gridRows] = gridSizeVal.split('x').map(Number);
@@ -603,7 +610,7 @@ class SceneCreatorApp extends FormApplication {
     try {
       // Step 1: AI prompt generation
       statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> AI crafting battle map description...</div>');
-      const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme, gridCols, gridRows);
+      const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme, gridCols, gridRows, includeCharacters);
 
       // Step 2: Image generation
       statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Generating image via Supabase...</div>`);
@@ -656,7 +663,7 @@ class SceneCreatorApp extends FormApplication {
 
   static escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;');
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 }
 
@@ -669,7 +676,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.6.0 initialized');
+  console.log('Scene Creator v1.6.1 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar

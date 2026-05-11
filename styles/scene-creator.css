@@ -363,3 +363,53 @@
   background: #8b5cf6;
   color: #fff;
 }
+
+/* ─── Toggle Switch ─── */
+.sc-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+
+.sc-toggle-input {
+  display: none;
+}
+
+.sc-toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #45475a;
+  border-radius: 10px;
+  flex: 0 0 36px;
+  transition: background 0.2s;
+}
+
+.sc-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #cdd6f4;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.sc-toggle-input:checked + .sc-toggle-switch {
+  background: #8b5cf6;
+}
+
+.sc-toggle-input:checked + .sc-toggle-switch::after {
+  transform: translateX(16px);
+}
+
+.sc-toggle-text {
+  font-size: 12px;
+  color: #a6adc8;
+  white-space: nowrap;
+}

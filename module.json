@@ -2,7 +2,7 @@
   "id": "scene-creator",
   "title": "Scene Creator",
   "description": "AI-powered scene background generation for Foundry VTT. Describe a scene, pick an environment, theme, and map size — then generate a custom map background. Creates a fully configured scene with proper grid dimensions and saves the image to your scenes directory.",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "authors": [
     {
       "name": "Steve"
