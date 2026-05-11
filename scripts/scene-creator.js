@@ -1,4 +1,4 @@
-/* SCENE CREATOR v1.6.1 — Characters toggle + scale fix for 5ft squares */
+/* SCENE CREATOR v1.6.2 — Force "no people" directly into image prompt, strip from AI output */
 const SCENE_CREATOR_MODULE = 'scene-creator';
 
 /* ── API Config ── */
@@ -55,7 +55,7 @@ Return ONLY the prompt text. 2-4 detailed sentences. No explanations, no markdow
 
     const charactersInstruction = includeCharacters
       ? 'Include a few characters or humanoid figures in the scene for scale reference. Make sure they are correctly scaled: a medium humanoid should be about 40-50px across (roughly one grid square wide). They appear as top-down silhouettes or simple figure outlines. Do NOT make them giant.'
-      : 'DO NOT include any characters, people, humanoids, creatures, or living beings in the scene. The map should show only the environment — terrain, architecture, props, furniture, obstacles. No people whatsoever.';
+      : 'ABSOLUTELY NO PEOPLE. The scene must be completely empty of all living creatures.';
 
     const userPrompt = `Scene name: "${name}"
 Description: ${description || 'A generic fantasy encounter area'}
@@ -64,7 +64,7 @@ Theme: ${theme || 'day'}
 Grid: ${gridCols} columns × ${gridRows} rows (aspect ratio ${gridCols}:${gridRows})
 Characters in scene: ${includeCharacters ? 'Yes' : 'No'}
 
-Generate a battle map image prompt using the reference style described above. The view MUST be looking straight down (bird's eye, not side view). ${charactersInstruction} Focus on: ground-level terrain layout, paths and features visible from above, warm earthy color palette, dramatic lighting, rich surface textures.`;
+Generate a battle map image prompt using the reference style described above. The view MUST be looking straight down (bird's eye, not side view). ${includeCharacters ? 'Include humanoid figures at approximately 40-50px wide each, clearly visible as simple top-down silhouettes.' : 'NO PEOPLE. The scene is completely empty of all characters, creatures, humanoids, or any living beings. This is a scene-only battle map. Do not suggest or include any inhabitants at all.'} Focus on: ground-level terrain layout, paths and features visible from above, warm earthy color palette, dramatic lighting, rich surface textures.`;
 
     let rawText;
     if (Ob && typeof Ob.chat === 'function') {
@@ -610,7 +610,19 @@ class SceneCreatorApp extends FormApplication {
     try {
       // Step 1: AI prompt generation
       statusArea.html('<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> AI crafting battle map description...</div>');
-      const mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme, gridCols, gridRows, includeCharacters);
+      let mapPrompt = await SceneCreator._generateMapPrompt(name, description, environment, theme, gridCols, gridRows, includeCharacters);
+
+      // Step 2: If no characters, strip any character references from the AI's prompt + append forced instruction
+      if (!includeCharacters) {
+        // Remove phrases that describe people/characters from the AI-generated prompt
+        mapPrompt = mapPrompt
+          .replace(/[^.]*?(?:characters?|people|humanoids?|creatures?|figures?|inhabitants?|adventurers?|warriors?|guards?|soldiers?|monsters?|enemies?|npcs?|beings?)[^.]*\./gi, '')
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+        // CRITICAL: Append the "no people" instruction as the last thing — image models
+        // respond strongly to the end of the prompt
+        mapPrompt += ' ABSOLUTELY NO PEOPLE. EMPTY SCENE. NO CHARACTERS, CREATURES, OR LIVING BEINGS OF ANY KIND.';
+      }
 
       // Step 2: Image generation
       statusArea.html(`<div class="scene-status-step"><i class="fas fa-spinner fa-spin"></i> Generating image via Supabase...</div>`);
@@ -676,7 +688,7 @@ Hooks.once('init', () => {
   Handlebars.registerHelper('eq', function(a, b) {
     return a === b;
   });
-  console.log('Scene Creator v1.6.1 initialized');
+  console.log('Scene Creator v1.6.2 initialized');
 });
 
 // Add button to the Scenes section of the Scene toolbar
